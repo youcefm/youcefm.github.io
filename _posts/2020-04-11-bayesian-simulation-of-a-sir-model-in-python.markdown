@@ -6,13 +6,19 @@ categories: bayesian-statistics dynamic-models epidimiology
 ---
 
 In this post, I want to explore the canonical epidimioligical model of virus spread known as the Susceptible-Infectious-Recovered (SIR) model. I draw on papers that have been published in the last month on COVID-19 to build a full Bayesian simulation of a SIR model fitted to the daily data on deaths, using Python.
+Topics: Epidimiology, Dynamic Models, Bayesian Statistics, MCMC, Python.
 
 ## Introduction
-In March 2020, we saw a number of papers published on Medrxiv](https://www.medrxiv.org/) trying to understand the spread of the virus SARS-COV2, the coronavirus responsible of COVID-19 respiratory illness.
+In March 2020, we saw a number of papers published on [Medrxiv](https://www.medrxiv.org/) trying to understand the spread of the virus SARS-COV2, the coronavirus responsible of COVID-19 respiratory illness. These papers
 
 ### Dynamic System of Equations Describing a SIR Model
-Lets start by writing down the functions that describe how the population evolves as the virus spreads.
-$ \div{dy}{dt} = \beta*(1-z) - \sigma*y $
+Lets start by writing down the functions that describe how the population evolves as the virus spreads. The SIR model is composed of three quantities (stocks): the susceptible population N, the infectious population y, and the recovered population z (no longer infectious). The susceptible population is fixed (say the population of a country), while the infectious and recovered populations evolve according to system of linear differential equations. These equations determine how y, z and the number of deaths from the disease evolve over time.
+
+$\div{dy}{dt} = \beta*(1-z) - \sigma*y$ 
+$\div{dz}{dt} = \beta*(1-z)$ 
+$\omega_t = N*\rho*\theta*z_{t - \psy}$
+
+These equations are simulated in Python with the following code
 
 {% highlight python %}
 
