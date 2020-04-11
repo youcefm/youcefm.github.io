@@ -1,9 +1,8 @@
-
 ---
 layout: post
 title:  "Bayesian Simulation of a SIR Model in Python"
-date:   2020-04-11
-categories: bayesian statistics, dynamic models, epidimiology
+date:   2020-04-11 
+categories: bayesian statistics| dynamic models| epidimiology
 ---
 
 
