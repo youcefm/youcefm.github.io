@@ -10,7 +10,7 @@ categories: bayesian statistics, dynamic models, epidimiology
 ### Dynamic System Equations
 Lets start by writing down the functions that describe how the population evolves as the virus spreads.
 
-{% highlight ruby %}
+{% highlight python %}
 
 def dy_dt(y, z, beta, sigma):
     "change in proportion of population infectious"
