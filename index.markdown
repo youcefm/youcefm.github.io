@@ -4,6 +4,9 @@ layout: default
 
 <div class="posts">
   {% for post in site.posts %}
+  {% if page.mathjax  %}
+  <script type="text/javascript" async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+{% endif %}
     <article class="post">
 
       <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
