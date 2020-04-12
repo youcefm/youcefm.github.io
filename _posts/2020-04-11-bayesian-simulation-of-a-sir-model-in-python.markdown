@@ -55,39 +55,26 @@ These equations are simulated in Python with the following code
 {% highlight python %}
 
 def dy_dt(y, s, beta, sigma):
-
     "change in proportion of population infectious"
-    y = min(max(0,y),1)
-    s = min(max(0,s),1)
-    beta = max(0,beta)
-    sigma = max(0,sigma)
+    y, s, beta, sigma = min(max(0,y),1), min(max(0,s),1), max(0,beta), max(0,sigma)
     return beta*y*s - sigma*y
     
 def dz_dt(y, sigma):
-
     "change in proportion of population no longer infectious"
-    y = min(max(0,y),1)
-    sigma = max(0,sigma)
+    y, sigma = min(max(0,y),1), max(0,sigma)
     return sigma*y
     
 def ds_dt(y, s, beta):
-
     "change in proportion of population susceptible"
-    y = min(max(0,y),1)
-    s = min(max(0,s),1)
-    beta = max(0,beta)
+    y, s, beta = min(max(0,y),1), min(max(0,s),1), max(0,beta)
     return -beta*y*s
 
 def cum_deaths(N, rho, theta, z_lag):
-
     "cumulative deaths"
-    rho = min(max(0,rho),1)
-    theta = min(max(0,theta),1)
-    z_lag = min(max(0,z_lag),1)
+    rho, theta, z_lag = min(max(0,rho),1), min(max(0,theta),1), min(max(0,z_lag),1)
     return np.round(N*rho*theta*z_lag)
 
 def simulate_data(inverse_sigma=4.5, theta=0.14, rho=0.01, R=2.75, psy=17):
-
     "simulate output of SIR model"
     
     #constants
@@ -99,10 +86,7 @@ def simulate_data(inverse_sigma=4.5, theta=0.14, rho=0.01, R=2.75, psy=17):
     sigma = 1/inverse_sigma
     beta = sigma*R 
     lag = max(0, int(np.round(psy)))
-    y = [0]
-    z = [0]
-    s = [1]
-    deaths = [0]
+    y, z, s, deaths = [0], [0], [1], [0]
     
     for i in range(0, time_span):
         if i <first_case:
@@ -111,15 +95,15 @@ def simulate_data(inverse_sigma=4.5, theta=0.14, rho=0.01, R=2.75, psy=17):
             s.append(1)
             deaths.append(0)
         elif i == first_case:
-            y.append(1./(N))
+            y.append(1./N)
             z.append(0)
             s.append(1)
             deaths.append(0)
         else:
-            y.append(y[i] + dy_dt(y[i], s[i], beta, sigma))
-            z.append(z[i] + dz_dt(y[i], sigma))
-            s.append(s[i] + ds_dt(y[i], s[i], beta)
-            deaths.append(cum_deaths(N, rho, theta, z[max(0, i - lag)])) ## works because z is always 0 at index 0
+            y.append(y[i] + dy_dt(y[i], s[i], beta, sigma) )
+            z.append(z[i] + dz_dt(y[i], sigma) )
+            s.append(s[i] + ds_dt(y[i], s[i], beta) )
+            deaths.append(cum_deaths(N, rho, theta, z[max(0, i - lag)]) ) ## works because z is always 0 at index 0
 
         return [deaths, y, z, s]
 {% endhighlight %}
@@ -133,8 +117,6 @@ df = pd.DataFrame(zip(model_output[0], model_output[1], model_output[2], model_o
 df.plot(x='time', y=['prop_infectious', 'prop_recovered', 'prop_susceptible'], title= 'Solution Curves of SIR Model')
 
 {% endhighlight %}
-
-
 
 ### Compare Model To Real Data
 
