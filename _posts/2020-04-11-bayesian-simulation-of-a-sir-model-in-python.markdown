@@ -36,14 +36,14 @@ The number of deaths from the virus can be obtained in the SIR model by adding a
 Now that we understand what SIR models are made of, lets build one using a system of differential equations. The goal is to define equations that, given initial conditions, can simulate the full evoluation of the virus spread in the population.
 
 ### Differential Equations Describing a SIR Model
-Differential equations are very useful for describing how some quantity changes over time. They can be used to describe how the virus spreads over time in the context of a SIR model. As discussed in the previous section, the SIR model is composed of three pools: the fraction of the population in the infectious pool $s(t)$, the fraction of the population in the recovered pool $z(t)$ (no longer infectious), and the fraction of the population susceptible ( $s(t) = 1 -z(t) -y(t)$ ). 
+Differential equations are very useful for describing how some quantity changes over time. They can be used to describe how the virus spreads over time in the context of a SIR model. As discussed in the previous section, the SIR model is composed of three pools: the fraction of the population in the infectious pool \\(y(t)\\), the fraction of the population in the recovered pool \\(z(t)\\) (no longer infectious), and the fraction of the population susceptible ( \\(s(t) = 1 -z(t) -y(t)\\) ). 
 To fully describe this system, we need equations that tell us how the infectious and recovered populations change at any point in time.  
 
-$\div{dy}{dt} = \beta*y*s - \sigma*y$
+$$\div{dy}{dt} = \beta*y*s - \sigma*y$$
 
-$\div{dz}{dt} = \sigma*y$
+$$\div{dz}{dt} = \sigma*y$$
 
-$\div{ds}{dt} = -\beta*y*s $
+$$\div{ds}{dt} = -\beta*y*s $$
 
 Now that we have these equations, we can define an equation for the number of deaths from the virus. We need to define parameters that determine how infected individuals can die. $/rho$ is the rate of severe disease from infection, and $\theta$ is the risk of death conditional on severe disease. The product of these two parameters is the IFR. Given a total population N, the equation for cumulative deaths over time is:
 
