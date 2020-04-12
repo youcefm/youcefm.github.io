@@ -5,81 +5,167 @@ date:   2020-04-11
 categories: bayesian-statistics dynamic-models epidimiology
 ---
 
-In this post, I want to explore the canonical epidimioligical model of virus spread known as the Susceptible-Infectious-Recovered (SIR) model. I draw on papers that have been published in the last month on COVID-19 to build a full Bayesian simulation of a SIR model fitted to the daily data on deaths, using Python.
+In this post, I want to explore the canonical epidimioligical model of virus spread known as the Susceptible-Infectious-Recovered (SIR) model. I draw on papers that have been published in the last month on COVID-19 to build a full Bayesian simulation of a SIR model fitted to the daily data on deaths, using Python. 
+
 Topics: Epidimiology, Dynamic Models, Bayesian Statistics, MCMC, Python.
 
 ## Introduction
 In March 2020, we saw a number of papers published on [Medrxiv](https://www.medrxiv.org/) trying to understand the spread of the virus SARS-COV2, the coronavirus responsible of COVID-19 respiratory illness. These papers
 
-### Dynamic System of Equations Describing a SIR Model
-Lets start by writing down the functions that describe how the population evolves as the virus spreads. The SIR model is composed of three quantities (stocks): the susceptible population N, the infectious population y, and the recovered population z (no longer infectious). The susceptible population is fixed (say the population of a country), while the infectious and recovered populations evolve according to system of linear differential equations. These equations determine how y, z and the number of deaths from the disease evolve over time.
+In a series of 3 posts I will walk you through the process of defining a SIR model to simulate the spread of a virus in a population, estimate the parameters of the model using Bayesian methods, and finally making predictions from the model using bayesian predictive posteriors. All of this is done in Python. Existing academic models of this kind are usually built in C. This is because the MCMC simulation loop can be implemented much more efficiently in C than Python. But, building such models in Python can allow much faster iteration speed, and allow the exploration of amny more model variations.
 
-$\div{dy}{dt} = \beta*(1-z) - \sigma*y$ 
-$\div{dz}{dt} = \beta*(1-z)$ 
-$\omega_t = N*\rho*\theta*z_{t - \psy}$
+This post, the first in the series, walks you through the basic ingredients of SIR models and shows you how to build a variant of the model defined in [this paper](https://www.medrxiv.org/content/10.1101/2020.03.24.20042291v1.full.pdf).
+
+In the second post, I introduce data. I explain how to define priors on the model parameters as well as a liklihood function for the data given the parameters. I then build an Markov Chain Monte Carlo (MCMC) algorithm from scratch to estimate the posetrior distribution of the parameters given the model, the priors and the data.
+
+In the last post, I show you how to use the output of the posterior draws from the MCMC simulation to then predict how the virus spread will evolve in the future, building a full range of scenarios taking parameter uncertainty into account.
+
+### The Basic Ingredients of SIR Models
+
+For a simple and detailed step by step explanation of SIR models, I encourage you to [read this series of posts](https://www.maa.org/press/periodicals/loci/joma/the-sir-model-for-spread-of-disease-the-differential-equation-model) from the Mathematical Association of America. It is written in annoying pedagogical style, but the content is worth it. Here, I will explain the basics needed to implement our model in Python.
+
+A SIR model is the simplest way to mathematically describe the spread of a virus in a population. The model treats the population as a homogenous blob with random interactions between individuals, abstracting away the specific topology of the network underlying social interactions.
+
+It starts by considering a population susceptible to be infected by the virus (say everyone in a give city or country). Once the virus is introduced in the population (first infection), infected individuals transmit the virus to other susceptible individuals at the transmission rate $\beta$ per unit of time. Infected Individuals then "recover" from the infection at a rate $\sigma$ per unit of time, implying an infectious period of $\div{1}/{\sigma}$. This can be jarring to realize, but the term recovery in these models simply means the individual is no longer infectious; they could still feel terrible and eventually die.
+
+A critical quantity in SIR models is the base reproduction rate of the virus, $R_0$. It is the number of new infections resulting from every existing infection. This quantity is equal to the transmission rate times the infectious period, $R_0 = \div{\beta}/{\sigma}$ . Intuitively, the virus reproduces more if it is more likely to transmit from an infected individual to susceptible individuals (higher $\beta$), and it also reproduces more if infected individuals remain in the infectious pool for longer periods of time. 
+
+The number of deaths from the virus can be obtained in the SIR model by adding an extra parameter: the Infection Fatality Rate (IFR). This is the number of infected individuals that "recover" by dying from the illness the virus causes.
+
+Now that we understand what SIR models are made of, lets build one using a system of differential equations. The goal is to define equations that, given initial conditions, can simulate the full evoluation of the virus spread in the population.
+
+### Linear Differential Equations Describing a SIR Model
+Linear differential equations are very useful for describing how some quantity changes over time. They can be used to describe how the virus spreads over time in the context of a SIR model. As discussed in the previous section, the SIR model is composed of three pools: the fraction of the population in the infectious pool $s(t)$, the fraction of the population in the recovered pool $z(t)$ (no longer infectious), and the fraction of the population susceptible ( $s(t) = 1 -z(t) -y(t)$ ). 
+To fully describe this system, we need equations that tell us how the infectious and recovered populations change at any point in time.  
+
+$\div{dy}{dt} = \beta*y*s - \sigma*y$
+
+$\div{dz}{dt} = \sigma*y$
+
+$\div{ds}{dt} = -\beta*y*s $
+
+Now that we have these equations, we can define an equation for the number of deaths from the virus. We need to define parameters that determine how infected individuals can die. $/rho$ is the rate of severe disease from infection, and $\theta$ is the risk of death conditional on severe disease. The product of these two parameters is the IFR. Given a total population N, the equation for cumulative deaths over time is:
+
+$\Omega(t) = N*\rho*\theta*z_{t - \psy}$
+
+The initial conditions are given by $s(0) = 1$ , $y(0) = 1/N$ , $z(0) = 0$.
 
 These equations are simulated in Python with the following code
 
 {% highlight python %}
 
-def dy_dt(y, z, beta, sigma):
+def dy_dt(y, s, beta, sigma):
+
     "change in proportion of population infectious"
     y = min(max(0,y),1)
-    z = min(max(0,z),1)
+    s = min(max(0,s),1)
     beta = max(0,beta)
     sigma = max(0,sigma)
+    return beta*y*s - sigma*y
     
-    return beta*y*(1-z) - sigma*y
-def dz_dt(y, z, beta):
+def dz_dt(y, sigma):
+
     "change in proportion of population no longer infectious"
     y = min(max(0,y),1)
-    z = min(max(0,z),1)
-    beta = max(0,beta)
+    sigma = max(0,sigma)
+    return sigma*y
     
-    return beta*y*(1-z)
+def ds_dt(y, s, beta):
+
+    "change in proportion of population susceptible"
+    y = min(max(0,y),1)
+    s = min(max(0,s),1)
+    beta = max(0,beta)
+    return -beta*y*s
 
 def cum_deaths(N, rho, theta, z_lag):
+
     "cumulative deaths"
     rho = min(max(0,rho),1)
     theta = min(max(0,theta),1)
     z_lag = min(max(0,z_lag),1)
-    
     return np.round(N*rho*theta*z_lag)
 
 def simulate_data(inverse_sigma=4.5, theta=0.14, rho=0.01, R=2.75, psy=17):
-"Simulate Output of SIR Model"
-        # constants
-        N=66*10**6
-        time_span=57         ## needs more thought
-        first_case = 2       ## needs more thought
-        #import pdb; pdb.set_trace()
+
+    "simulate output of SIR model"
+    
+    #constants
+    N=66*10**6          ## population size
+    time_span=90        ## simulation period
+    first_case = 10     ## time of introduction of first infection
         
-        #parameters
-        sigma = 1/inverse_sigma
-        beta = sigma*R 
-        lag = max(0, int(np.round(psy)))
-        y=[0]
-        z = [0]
-        deaths = [0]
-        for i in range(0, time_span):
-            if i <first_case -1:
-                y.append(0)
-                z.append(0)
-                deaths.append(0)
-            elif i == first_case -1:
-                y.append(1./(N))
-                z.append(0)
-                deaths.append(0)
-            else:
-                y.append(y[i] + dy_dt(y[i], z[i], beta, sigma))
-                z.append(z[i] + dz_dt(y[i], z[i], beta))
-                deaths.append(cum_deaths(N, rho, theta, z[max(0, i - lag)])) ## works because z is always 0 at index 0
-        
-        return [deaths, y, z]
+    #parameters
+    sigma = 1/inverse_sigma
+    beta = sigma*R 
+    lag = max(0, int(np.round(psy)))
+    y = [0]
+    z = [0]
+    s = [1]
+    deaths = [0]
+    
+    for i in range(0, time_span):
+        if i <first_case:
+            y.append(0)
+            z.append(0)
+            s.append(1)
+            deaths.append(0)
+        elif i == first_case:
+            y.append(1./(N))
+            z.append(0)
+            s.append(1)
+            deaths.append(0)
+        else:
+            y.append(y[i] + dy_dt(y[i], s[i], beta, sigma))
+            z.append(z[i] + dz_dt(y[i], sigma))
+            s.append(s[i] + ds_dt(y[i], s[i], beta)
+            deaths.append(cum_deaths(N, rho, theta, z[max(0, i - lag)])) ## works because z is always 0 at index 0
+
+        return [deaths, y, z, s]
 {% endhighlight %}
 
-Check out the [Jekyll docs][jekyll-docs] for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll’s GitHub repo][jekyll-gh]. If you have questions, you can ask them on [Jekyll Talk][jekyll-talk].
+### Solution Curves
 
-[jekyll-docs]: https://jekyllrb.com/docs/home
-[jekyll-gh]:   https://github.com/jekyll/jekyll
-[jekyll-talk]: https://talk.jekyllrb.com/
+{% highlight python %}
+
+model_output = simulate_data()
+df = pd.DataFrame(zip(model_output[0], model_output[1], model_output[2], model_output[3], range(0,100)), columns=['cum_deaths', 'prop_infectious', 'prop_recovered', 'prop_susceptible', 'time'])
+df.plot(x='time', y=['prop_infectious', 'prop_recovered', 'prop_susceptible'], title= 'Solution Curves of SIR Model')
+
+{% endhighlight %}
+
+
+
+### Compare Model To Real Data
+
+Now lets compare our model output for number of death to real data from the UK. I already calibrated the parameters in the code to relflect the UK situation as much as possible.
+
+{% highlight python %}
+
+## prep UK data
+
+data = pd.read_csv('covid_deaths.csv')
+uk_data = data[(data['Country/Region'] == 'United Kingdom') & (data['Province/State'] == 'United Kingdom')]
+
+for column in ['Province/State', 'Country/Region', 'Lat', 'Long']:
+    del uk_data[column]
+
+uk_data = uk_data.melt(var_name ='date', value_name = 'deaths')
+uk_data['cum_deaths'] = uk_data.deaths.cumsum()
+uk_data = uk_data = uk_data.loc[0:57]
+
+{% endhighlight %}
+
+{% highlight python %}
+
+df_compare = pd.DataFrame(zip(range(0, 97), simulate_data()[0], uk_data.cum_deaths), columns=['time', 'model_output', 'data'])
+#df_compare.plot(x='time', y=['model_output', 'data'], marker='+', linestyle='none')
+import matplotlib.pyplot as plt
+model, = plt.plot(df_compare.time, df_compare.model_output, 'k^', label='model output')
+data, = plt.plot( df_compare.time, df_compare.data, 'r+', label='observed data')
+plt.legend(handles=[model, data])
+plt.title('Actual Deaths vs Model Output')
+plt.xlabel('time')
+plt.ylabel('cumulative deaths')
+
+{% endhighlight %}
