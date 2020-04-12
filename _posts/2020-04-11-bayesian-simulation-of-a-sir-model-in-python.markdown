@@ -3,6 +3,7 @@ layout: post
 title:  "Bayesian Simulation of a SIR Model in Python"
 date:   2020-04-11 
 categories: bayesian-statistics dynamic-models epidimiology
+mathjax: true
 ---
 
 In this post, I want to explore the canonical epidimioligical model of virus spread known as the Susceptible-Infectious-Recovered (SIR) model. I draw on papers that have been published in the last month on COVID-19 to build a full Bayesian simulation of a SIR model fitted to the daily data on deaths, using Python. 
