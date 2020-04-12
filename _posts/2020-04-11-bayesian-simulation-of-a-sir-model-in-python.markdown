@@ -10,7 +10,7 @@ In this post, I want to explore the canonical epidimioligical model of virus spr
 Topics: Epidimiology, Dynamic Models, Bayesian Statistics, MCMC, Python.
 
 ## Introduction
-In March 2020, we saw a number of papers published on [Medrxiv](https://www.medrxiv.org/) trying to understand the spread of the virus SARS-COV2, the coronavirus responsible of COVID-19 respiratory illness. These papers
+In March 2020, we saw a number of papers published on [Medrxiv](https://www.medrxiv.org/) trying to understand the spread of the virus SARS-COV2, the coronavirus responsible of COVID-19 respiratory illness. Many of these papers use some type ofa Susceptible-Infectious-Recovered framework to model the disease and analyze data.
 
 In a series of 3 posts I will walk you through the process of defining a SIR model to simulate the spread of a virus in a population, estimate the parameters of the model using Bayesian methods, and finally making predictions from the model using bayesian predictive posteriors. All of this is done in Python. Existing academic models of this kind are usually built in C. This is because the MCMC simulation loop can be implemented much more efficiently in C than Python. But, building such models in Python can allow much faster iteration speed, and allow the exploration of amny more model variations.
 
@@ -22,9 +22,9 @@ In the last post, I show you how to use the output of the posterior draws from t
 
 ### The Basic Ingredients of SIR Models
 
-For a simple and detailed step by step explanation of SIR models, I encourage you to [read this series of posts](https://www.maa.org/press/periodicals/loci/joma/the-sir-model-for-spread-of-disease-the-differential-equation-model) from the Mathematical Association of America. It is written in annoying pedagogical style, but the content is worth it. Here, I will explain the basics needed to implement our model in Python.
+The first proposed SIR model seems to date back to a [1927 paper by W. O. Kermack and A. G. McKendrick](https://royalsocietypublishing.org/doi/pdf/10.1098/rspa.1927.0118). For a simple step by step explanation of SIR models, I encourage you to [read this series of posts](https://www.maa.org/press/periodicals/loci/joma/the-sir-model-for-spread-of-disease-the-differential-equation-model) from the Mathematical Association of America. Here, I will explain the minimum needed to implement our model in Python.
 
-A SIR model is the simplest way to mathematically describe the spread of a virus in a population. The model treats the population as a homogenous blob with random interactions between individuals, abstracting away the specific topology of the network underlying social interactions.
+A SIR model is the simplest way to mathematically describe the spread of a virus in a population over time. The model treats the population as a homogenous blob with random interactions between individuals, abstracting away the specific topology of the network underlying social interactions.
 
 It starts by considering a population susceptible to be infected by the virus (say everyone in a give city or country). Once the virus is introduced in the population (first infection), infected individuals transmit the virus to other susceptible individuals at the transmission rate $\beta$ per unit of time. Infected Individuals then "recover" from the infection at a rate $\sigma$ per unit of time, implying an infectious period of $\div{1}/{\sigma}$. This can be jarring to realize, but the term recovery in these models simply means the individual is no longer infectious; they could still feel terrible and eventually die.
 
@@ -34,8 +34,8 @@ The number of deaths from the virus can be obtained in the SIR model by adding a
 
 Now that we understand what SIR models are made of, lets build one using a system of differential equations. The goal is to define equations that, given initial conditions, can simulate the full evoluation of the virus spread in the population.
 
-### Linear Differential Equations Describing a SIR Model
-Linear differential equations are very useful for describing how some quantity changes over time. They can be used to describe how the virus spreads over time in the context of a SIR model. As discussed in the previous section, the SIR model is composed of three pools: the fraction of the population in the infectious pool $s(t)$, the fraction of the population in the recovered pool $z(t)$ (no longer infectious), and the fraction of the population susceptible ( $s(t) = 1 -z(t) -y(t)$ ). 
+### Differential Equations Describing a SIR Model
+Differential equations are very useful for describing how some quantity changes over time. They can be used to describe how the virus spreads over time in the context of a SIR model. As discussed in the previous section, the SIR model is composed of three pools: the fraction of the population in the infectious pool $s(t)$, the fraction of the population in the recovered pool $z(t)$ (no longer infectious), and the fraction of the population susceptible ( $s(t) = 1 -z(t) -y(t)$ ). 
 To fully describe this system, we need equations that tell us how the infectious and recovered populations change at any point in time.  
 
 $\div{dy}{dt} = \beta*y*s - \sigma*y$
@@ -120,9 +120,11 @@ title= 'Solution Curves of SIR Model')
 
 {% endhighlight %}
 
-### Compare Model To Real Data
+[GRAPH HERE]
 
-Now lets compare our model output for number of death to real data from the UK. I already calibrated the parameters in the code to relflect the UK situation as much as possible.
+### Compare Model To Real Data from the UK
+
+Now lets compare our model output for number of death to real data from the UK. I downloaded the data from this [John Hopkins University Github repo](https://github.com/CSSEGISandData/COVID-19). Here I use the archived data as of March 25 2020. Feel free to replace by more up to date data.
 
 {% highlight python %}
 
@@ -139,6 +141,8 @@ uk_data = uk_data = uk_data.loc[0:57]
 
 {% endhighlight %}
 
+Now lets compare the actual UK deaths to the model output. The model output will depend on the specific parameter values chosen. I calibrated the parameters to relflect the UK situation reasonably well.
+
 {% highlight python %}
 
 df_compare = pd.DataFrame(zip(range(0, 97), simulate_data()[0], uk_data.cum_deaths), columns=['time', 'model_output', 'data'])
@@ -152,3 +156,5 @@ plt.xlabel('time')
 plt.ylabel('cumulative deaths')
 
 {% endhighlight %}
+
+[GRAPH HERE]
