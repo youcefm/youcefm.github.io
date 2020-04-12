@@ -113,8 +113,10 @@ def simulate_data(inverse_sigma=4.5, theta=0.14, rho=0.01, R=2.75, psy=17):
 {% highlight python %}
 
 model_output = simulate_data()
-df = pd.DataFrame(zip(model_output[0], model_output[1], model_output[2], model_output[3], range(0,100)), columns=['cum_deaths', 'prop_infectious', 'prop_recovered', 'prop_susceptible', 'time'])
-df.plot(x='time', y=['prop_infectious', 'prop_recovered', 'prop_susceptible'], title= 'Solution Curves of SIR Model')
+df = pd.DataFrame(zip(model_output[0], model_output[1], model_output[2], model_output[3], range(0,100)), 
+columns=['cum_deaths', 'prop_infectious', 'prop_recovered', 'prop_susceptible', 'time'])
+df.plot(x='time', y=['prop_infectious', 'prop_recovered', 'prop_susceptible'], 
+title= 'Solution Curves of SIR Model')
 
 {% endhighlight %}
 
@@ -125,7 +127,6 @@ Now lets compare our model output for number of death to real data from the UK. 
 {% highlight python %}
 
 ## prep UK data
-
 data = pd.read_csv('covid_deaths.csv')
 uk_data = data[(data['Country/Region'] == 'United Kingdom') & (data['Province/State'] == 'United Kingdom')]
 
@@ -141,7 +142,7 @@ uk_data = uk_data = uk_data.loc[0:57]
 {% highlight python %}
 
 df_compare = pd.DataFrame(zip(range(0, 97), simulate_data()[0], uk_data.cum_deaths), columns=['time', 'model_output', 'data'])
-#df_compare.plot(x='time', y=['model_output', 'data'], marker='+', linestyle='none')
+
 import matplotlib.pyplot as plt
 model, = plt.plot(df_compare.time, df_compare.model_output, 'k^', label='model output')
 data, = plt.plot( df_compare.time, df_compare.data, 'r+', label='observed data')
